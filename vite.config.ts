@@ -3,7 +3,7 @@ import { defineConfig, loadEnv } from 'vite';
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/your-repo-name/', // Replace with your actual GitHub repository name
+  base: 'BORSTL-2026', // Replace with your actual GitHub repository name
 })
 import react from '@vitejs/plugin-react';
 
