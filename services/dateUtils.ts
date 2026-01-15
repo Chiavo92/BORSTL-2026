@@ -1,4 +1,4 @@
-import { WeekOption, Rental } from '../types';
+import { WeekOption } from '../types';
 
 export const generateWeeks2026 = (): WeekOption[] => {
   const weeks: WeekOption[] = [];
