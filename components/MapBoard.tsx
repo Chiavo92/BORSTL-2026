@@ -7,14 +7,15 @@ interface MapBoardProps {
   highlightedRentalId: string | null;
 }
 
-// SVG Placeholder that looks like a technical blueprint grid
-const FALLBACK_MAP = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3e%3cdefs%3e%3cpattern id='grid' width='40' height='40' patternUnits='userSpaceOnUse'%3e%3cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='%23cbd5e1' stroke-width='1'/%3e%3c/pattern%3e%3c/defs%3e%3crect width='800' height='450' fill='%23f1f5f9'/%3e%3crect width='800' height='450' fill='url(%23grid)'/%3e%3ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='%2364748b'%3eMapa niedost%C4%99pna - Tryb Techniczny%3c/text%3e%3c/svg%3e`;
+// SVG Placeholder that looks like a nice architectural floor plan instead of an error
+const FALLBACK_MAP = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3e%3crect width='800' height='450' fill='%23f8fafc'/%3e%3crect x='10' y='10' width='780' height='430' fill='none' stroke='%23334155' stroke-width='4'/%3e%3cpath d='M250 10 v430 M550 10 v430 M250 180 h300' stroke='%2394a3b8' stroke-width='2'/%3e%3ctext x='125' y='225' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eApartament A%3c/text%3e%3ctext x='400' y='100' font-family='sans-serif' font-size='20' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eWejście / Recepcja%3c/text%3e%3ctext x='400' y='320' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eSalon Główny%3c/text%3e%3ctext x='675' y='225' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eApartament B%3c/text%3e%3c/svg%3e`;
 
 export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlightedRentalId }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   
-  // Start with explicit root path, fallback to base64 if fails
-  const [currentSrc, setCurrentSrc] = useState("/mapa.png");
+  // Use relative path './mapa.png' so it works on GitHub Pages subdirectories.
+  // Requires user to put 'mapa.png' in the 'public' folder.
+  const [currentSrc, setCurrentSrc] = useState("./mapa.png");
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -39,10 +40,10 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
   const handleImageError = () => {
     // If the main image fails, switch to fallback once.
     if (!isUsingFallback) {
-      console.warn("mapa.png failed to load. Switching to fallback placeholder.");
+      console.warn("mapa.png failed to load (possibly missing in /public or path issue). Switching to architectural fallback.");
       setCurrentSrc(FALLBACK_MAP);
       setIsUsingFallback(true);
-      // We do not set isLoaded to true here, we wait for the fallback to load
+      // We do not set isLoaded to true here immediately, we let the new src load
     }
   };
 
@@ -53,7 +54,7 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
         <img 
           ref={imgRef}
           src={currentSrc} 
-          alt="Mapa Centrum" 
+          alt="Mapa Obiektu" 
           className={`w-full h-auto object-cover block select-none transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleImageLoad}
           onError={handleImageError}
