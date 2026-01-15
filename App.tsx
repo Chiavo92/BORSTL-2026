@@ -3,10 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { MapBoard } from './components/MapBoard';
 import { RentalForm } from './components/RentalForm';
 import { Modal } from './components/Modal';
-import { Button } from './components/Button';
 import { generateWeeks2026, isDateInWeek } from './services/dateUtils';
 import { checkCollision } from './services/collisionService';
-import { Rental, WeekOption } from './types';
+import { Rental } from './types';
 
 // Initial dummy data for demonstration
 const INITIAL_DATA: Rental[] = [
@@ -94,11 +93,6 @@ const App: React.FC = () => {
     if (confirm('Czy na pewno chcesz usunąć ten wynajem?')) {
       setRentals(prev => prev.filter(r => r.id !== id));
     }
-  };
-
-  const scrollToRow = (id: string) => {
-    const el = document.getElementById(`row-${id}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const centerOnPin = (id: string) => {
