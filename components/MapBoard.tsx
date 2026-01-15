@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { Rental } from '../types';
 
 interface MapBoardProps {
@@ -12,32 +12,11 @@ const FALLBACK_MAP = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.
 
 export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlightedRentalId }) => {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   
   // Start with explicit root path, fallback to base64 if fails
   const [currentSrc, setCurrentSrc] = useState("/mapa.png");
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-
-  // Update dimensions on load and resize
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (imgRef.current) {
-        setDimensions({
-          width: imgRef.current.clientWidth,
-          height: imgRef.current.clientHeight
-        });
-      }
-    };
-    
-    window.addEventListener('resize', updateDimensions);
-    const interval = setInterval(updateDimensions, 500);
-    
-    return () => {
-      window.removeEventListener('resize', updateDimensions);
-      clearInterval(interval);
-    };
-  }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imgRef.current) return;
@@ -55,12 +34,6 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
 
   const handleImageLoad = () => {
     setIsLoaded(true);
-    if (imgRef.current) {
-      setDimensions({
-        width: imgRef.current.clientWidth,
-        height: imgRef.current.clientHeight
-      });
-    }
   };
 
   const handleImageError = () => {
