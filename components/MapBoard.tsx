@@ -72,18 +72,22 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, onPinCl
               left: `${rental.x}%`, 
               top: `${rental.y}%`,
             }}
-            className={`absolute transform -translate-x-1/2 -translate-y-full transition-all duration-300 ease-in-out ${
+            // Changed -translate-y-full to -translate-y-1/2 to center the pin visually on the anchor point.
+            // This aligns the visual center with the collision center.
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ease-in-out ${
               highlightedRentalId === rental.id ? 'z-50 scale-125' : 'z-10 hover:z-20 hover:scale-110'
             }`}
           >
-            <div className="flex flex-col items-center">
-              {/* Tooltip on hover */}
-              <div className={`mb-1 px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity pointer-events-none ${
+            <div className="relative flex flex-col items-center justify-center">
+              {/* Tooltip on hover - Positioned absolutely to not affect the pin's layout center */}
+              <div className={`absolute bottom-full mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded shadow-lg whitespace-nowrap opacity-0 group-hover/pin:opacity-100 transition-opacity pointer-events-none ${
                   highlightedRentalId === rental.id ? 'opacity-100' : ''
                 }`}>
                 <div className="font-bold">{rental.tenantName}</div>
                 <div>{rental.dateFrom} - {rental.dateTo}</div>
                 <div className="text-gray-400 text-[10px] uppercase mt-0.5">Kliknij, aby edytować</div>
+                {/* Tooltip Arrow */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
               </div>
               
               {/* Pin Icon */}
