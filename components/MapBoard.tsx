@@ -4,17 +4,17 @@ import { Rental } from '../types';
 interface MapBoardProps {
   rentals: Rental[];
   onMapClick: (x: number, y: number, width: number, height: number) => void;
+  onPinClick: (rental: Rental) => void;
   highlightedRentalId: string | null;
 }
 
-// SVG Placeholder that looks like a nice architectural floor plan instead of an error
-const FALLBACK_MAP = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3e%3crect width='800' height='450' fill='%23f8fafc'/%3e%3crect x='10' y='10' width='780' height='430' fill='none' stroke='%23334155' stroke-width='4'/%3e%3cpath d='M250 10 v430 M550 10 v430 M250 180 h300' stroke='%2394a3b8' stroke-width='2'/%3e%3ctext x='125' y='225' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eApartament A%3c/text%3e%3ctext x='400' y='100' font-family='sans-serif' font-size='20' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eWejście / Recepcja%3c/text%3e%3ctext x='400' y='320' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eSalon Główny%3c/text%3e%3ctext x='675' y='225' font-family='sans-serif' font-size='24' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eApartament B%3c/text%3e%3c/svg%3e`;
+// SVG Placeholder updated to 2000x1000 (2:1 ratio)
+const FALLBACK_MAP = `data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='2000' height='1000' viewBox='0 0 2000 1000'%3e%3crect width='2000' height='1000' fill='%23f8fafc'/%3e%3crect x='20' y='20' width='1960' height='960' fill='none' stroke='%23334155' stroke-width='6'/%3e%3cpath d='M600 20 v960 M1400 20 v960 M600 400 h800' stroke='%2394a3b8' stroke-width='4'/%3e%3ctext x='300' y='500' font-family='sans-serif' font-size='48' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eSektor Zachodni%3c/text%3e%3ctext x='1000' y='200' font-family='sans-serif' font-size='40' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eStrefa Wejściowa%3c/text%3e%3ctext x='1000' y='700' font-family='sans-serif' font-size='48' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eSala Główna%3c/text%3e%3ctext x='1700' y='500' font-family='sans-serif' font-size='48' fill='%2364748b' text-anchor='middle' opacity='0.5'%3eSektor Wschodni%3c/text%3e%3c/svg%3e`;
 
-export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlightedRentalId }) => {
+export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, onPinClick, highlightedRentalId }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   
   // Use relative path './mapa.png' so it works on GitHub Pages subdirectories.
-  // Requires user to put 'mapa.png' in the 'public' folder.
   const [currentSrc, setCurrentSrc] = useState("./mapa.png");
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -33,17 +33,20 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
     onMapClick(xPercent, yPercent, rect.width, rect.height);
   };
 
+  const handlePinClick = (e: React.MouseEvent, rental: Rental) => {
+    e.stopPropagation(); // Prevent triggering the map click
+    onPinClick(rental);
+  };
+
   const handleImageLoad = () => {
     setIsLoaded(true);
   };
 
   const handleImageError = () => {
-    // If the main image fails, switch to fallback once.
     if (!isUsingFallback) {
-      console.warn("mapa.png failed to load (possibly missing in /public or path issue). Switching to architectural fallback.");
+      console.warn("mapa.png failed to load. Switching to architectural fallback.");
       setCurrentSrc(FALLBACK_MAP);
       setIsUsingFallback(true);
-      // We do not set isLoaded to true here immediately, we let the new src load
     }
   };
 
@@ -64,6 +67,7 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
         {rentals.map(rental => (
           <div
             key={rental.id}
+            onClick={(e) => handlePinClick(e, rental)}
             style={{ 
               left: `${rental.x}%`, 
               top: `${rental.y}%`,
@@ -79,6 +83,7 @@ export const MapBoard: React.FC<MapBoardProps> = ({ rentals, onMapClick, highlig
                 }`}>
                 <div className="font-bold">{rental.tenantName}</div>
                 <div>{rental.dateFrom} - {rental.dateTo}</div>
+                <div className="text-gray-400 text-[10px] uppercase mt-0.5">Kliknij, aby edytować</div>
               </div>
               
               {/* Pin Icon */}
