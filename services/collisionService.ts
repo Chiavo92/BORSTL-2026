@@ -8,10 +8,16 @@ export const checkCollision = (
   dateTo: string,
   existingRentals: Rental[],
   mapWidth: number,
-  mapHeight: number
+  mapHeight: number,
+  excludeRentalId?: string // New optional parameter
 ): { collision: boolean; conflict?: Rental } => {
   
   for (const rental of existingRentals) {
+    // Skip the rental being edited
+    if (excludeRentalId && rental.id === excludeRentalId) {
+      continue;
+    }
+
     // 1. Spatial Check (Pythagorean theorem)
     // Convert percentages back to pixels for distance check
     const p1x = (newX / 100) * mapWidth;
