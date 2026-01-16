@@ -5,10 +5,11 @@ import { Rental } from '../types';
 interface RentalFormProps {
   initialData?: Rental; // Optional rental data for editing
   onSave: (data: { tenantName: string; dateFrom: string; dateTo: string; description: string }) => void;
+  onDelete?: () => void; // Optional delete handler
   onCancel: () => void;
 }
 
-export const RentalForm: React.FC<RentalFormProps> = ({ initialData, onSave, onCancel }) => {
+export const RentalForm: React.FC<RentalFormProps> = ({ initialData, onSave, onDelete, onCancel }) => {
   const [formData, setFormData] = useState({
     tenantName: '',
     dateFrom: new Date().toISOString().split('T')[0],
@@ -94,11 +95,18 @@ export const RentalForm: React.FC<RentalFormProps> = ({ initialData, onSave, onC
         />
       </div>
 
-      <div className="flex gap-2 justify-end pt-2">
-        <Button type="button" variant="secondary" onClick={onCancel}>Anuluj</Button>
-        <Button type="submit" variant="primary">
-            {initialData ? 'Zapisz Zmiany' : 'Utwórz Rezerwację'}
-        </Button>
+      <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
+        <div>
+          {initialData && onDelete && (
+            <Button type="button" variant="danger" onClick={onDelete}>Usuń</Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="secondary" onClick={onCancel}>Anuluj</Button>
+          <Button type="submit" variant="primary">
+              {initialData ? 'Zapisz Zmiany' : 'Utwórz Rezerwację'}
+          </Button>
+        </div>
       </div>
     </form>
   );
