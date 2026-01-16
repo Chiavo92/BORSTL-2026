@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
+import { Rental } from '../types';
 
 interface RentalFormProps {
-  initialDateFrom?: string;
-  initialDateTo?: string;
+  initialData?: Rental; // Optional rental data for editing
   onSave: (data: { tenantName: string; dateFrom: string; dateTo: string; description: string }) => void;
   onCancel: () => void;
 }
 
-export const RentalForm: React.FC<RentalFormProps> = ({ onSave, onCancel }) => {
+export const RentalForm: React.FC<RentalFormProps> = ({ initialData, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     tenantName: '',
     dateFrom: new Date().toISOString().split('T')[0],
     dateTo: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     description: ''
   });
+
+  // Populate form if editing
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        tenantName: initialData.tenantName,
+        dateFrom: initialData.dateFrom,
+        dateTo: initialData.dateTo,
+        description: initialData.description
+      });
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +96,9 @@ export const RentalForm: React.FC<RentalFormProps> = ({ onSave, onCancel }) => {
 
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="secondary" onClick={onCancel}>Anuluj</Button>
-        <Button type="submit" variant="primary">Zapisz Rezerwację</Button>
+        <Button type="submit" variant="primary">
+            {initialData ? 'Zapisz Zmiany' : 'Utwórz Rezerwację'}
+        </Button>
       </div>
     </form>
   );
