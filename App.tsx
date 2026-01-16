@@ -69,10 +69,6 @@ const App: React.FC = () => {
     // Since we don't have the exact map pixel dimensions from a table click, 
     // we need to be careful. However, checkCollision uses % from existing/new rental and 
     // applies them to a hypothetical map size.
-    
-    // For simplicity, we just open the modal. The save handler needs to handle the logic.
-    // NOTE: Collision check requires map dimensions to calculate pixel distance.
-    // If we edit from table, we might skip spatial check or assume standard size?
     // Let's assume standard reference size of 2000x1000 for collision checks during edits if not clicked on map.
     setPendingLocation({ 
         x: rental.x, 
@@ -140,6 +136,15 @@ const App: React.FC = () => {
   const handleDelete = (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten wynajem?')) {
       setRentals(prev => prev.filter(r => r.id !== id));
+    }
+  };
+
+  const handleModalDelete = () => {
+    if (!editingRental) return;
+    
+    if (confirm('Czy na pewno chcesz usunąć ten wynajem?')) {
+        setRentals(prev => prev.filter(r => r.id !== editingRental.id));
+        closeModal();
     }
   };
 
@@ -271,6 +276,7 @@ const App: React.FC = () => {
         <RentalForm 
           initialData={editingRental || undefined}
           onSave={handleSaveRental} 
+          onDelete={editingRental ? handleModalDelete : undefined}
           onCancel={closeModal}
         />
       </Modal>
