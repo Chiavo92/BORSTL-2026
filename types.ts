@@ -20,4 +20,4 @@ export interface CollisionResult {
   conflictingRental?: Rental;
 }
 
-export const COLLISION_RADIUS_PX = 20; // Pixel tolerance for click (20px radius = 40px diameter)
+export const COLLISION_RADIUS_PX = 10; // Pixel tolerance for click (20px radius = 40px diameter)
