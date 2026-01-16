@@ -31,8 +31,11 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   
-  // Pending pin location when clicking the map
+  // Pending pin location when clicking the map (New Rental)
   const [pendingLocation, setPendingLocation] = useState<{x: number, y: number, width: number, height: number} | null>(null);
+
+  // Editing state
+  const [editingRental, setEditingRental] = useState<Rental | null>(null);
 
   // --- Computed ---
   const weeks = useMemo(() => generateWeeks2026(), []);
@@ -55,11 +58,38 @@ const App: React.FC = () => {
 
   const handleMapClick = (x: number, y: number, width: number, height: number) => {
     setPendingLocation({ x, y, width, height });
+    setEditingRental(null); // Ensure we are not in edit mode
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (rental: Rental) => {
+    setEditingRental(rental);
+    // When editing, we reuse the existing coordinates, but we simulate a "pending location"
+    // to reuse the collision logic which relies on width/height from the map click. 
+    // Since we don't have the exact map pixel dimensions from a table click, 
+    // we need to be careful. However, checkCollision uses % from existing/new rental and 
+    // applies them to a hypothetical map size.
+    
+    // For simplicity, we just open the modal. The save handler needs to handle the logic.
+    // NOTE: Collision check requires map dimensions to calculate pixel distance.
+    // If we edit from table, we might skip spatial check or assume standard size?
+    // Let's assume standard reference size of 2000x1000 for collision checks during edits if not clicked on map.
+    setPendingLocation({ 
+        x: rental.x, 
+        y: rental.y, 
+        width: 2000, 
+        height: 1000 
+    });
+    
     setIsModalOpen(true);
   };
 
   const handleSaveRental = (data: { tenantName: string; dateFrom: string; dateTo: string; description: string }) => {
     if (!pendingLocation) return;
+
+    // Determine ID and Exclusion for Collision Check
+    const rentalId = editingRental ? editingRental.id : uuidv4();
+    const excludeId = editingRental ? editingRental.id : undefined;
 
     // Check collision before saving
     const { collision, conflict } = checkCollision(
@@ -69,7 +99,8 @@ const App: React.FC = () => {
       data.dateTo,
       rentals,
       pendingLocation.width,
-      pendingLocation.height
+      pendingLocation.height,
+      excludeId // Pass ID to exclude self from collision check
     );
 
     if (collision && conflict) {
@@ -77,16 +108,33 @@ const App: React.FC = () => {
       return; // Stop saving
     }
 
-    const newRental: Rental = {
-      id: uuidv4(),
-      x: pendingLocation.x,
-      y: pendingLocation.y,
-      ...data
-    };
+    if (editingRental) {
+        // Update existing
+        setRentals(prev => prev.map(r => r.id === rentalId ? {
+            ...r,
+            ...data,
+            // We usually keep x/y same on edit unless we implement drag-drop later
+            x: editingRental.x, 
+            y: editingRental.y
+        } : r));
+    } else {
+        // Create new
+        const newRental: Rental = {
+            id: rentalId,
+            x: pendingLocation.x,
+            y: pendingLocation.y,
+            ...data
+        };
+        setRentals(prev => [...prev, newRental]);
+    }
 
-    setRentals(prev => [...prev, newRental]);
-    setIsModalOpen(false);
-    setPendingLocation(null);
+    closeModal();
+  };
+
+  const closeModal = () => {
+      setIsModalOpen(false);
+      setPendingLocation(null);
+      setEditingRental(null);
   };
 
   const handleDelete = (id: string) => {
@@ -141,13 +189,15 @@ const App: React.FC = () => {
                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                </svg>
-               Kliknij na mapę, aby dodać nowy wynajem. Istniejące rezerwacje oznaczono niebieskimi pinami.
+               Kliknij na mapę (Dodaj) lub na pin (Edytuj). Map uses 2:1 Ratio.
              </p>
           </div>
-          <div className="aspect-[16/9] w-full bg-slate-100 rounded-lg overflow-hidden">
+          {/* Changed aspect ratio from video (16/9) to 2:1 (aspect-[2/1]) */}
+          <div className="aspect-[2/1] w-full bg-slate-100 rounded-lg overflow-hidden">
              <MapBoard 
                 rentals={filteredRentals} 
                 onMapClick={handleMapClick}
+                onPinClick={handleEditClick}
                 highlightedRentalId={highlightedId}
              />
           </div>
@@ -188,7 +238,14 @@ const App: React.FC = () => {
                         {rental.dateFrom} <span className="text-slate-400 mx-1">→</span> {rental.dateTo}
                       </td>
                       <td className="px-6 py-4 max-w-xs truncate">{rental.description || '-'}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right flex justify-end gap-2">
+                         <button 
+                          onClick={(e) => { e.stopPropagation(); handleEditClick(rental); }}
+                          className="font-medium text-brand-600 hover:text-brand-800 hover:underline"
+                        >
+                          Edytuj
+                        </button>
+                        <span className="text-slate-300">|</span>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }}
                           className="font-medium text-red-600 hover:text-red-800 hover:underline"
@@ -205,15 +262,16 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* Modal for adding rental */}
+      {/* Modal for adding/editing rental */}
       <Modal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title="Nowa Rezerwacja"
+        onClose={closeModal} 
+        title={editingRental ? "Edytuj Rezerwację" : "Nowa Rezerwacja"}
       >
         <RentalForm 
+          initialData={editingRental || undefined}
           onSave={handleSaveRental} 
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={closeModal}
         />
       </Modal>
 
