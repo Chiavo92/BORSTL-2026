@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { MapBoard } from './components/MapBoard';
@@ -6,14 +7,17 @@ import { Modal } from './components/Modal';
 import { generateWeeks2026, isDateInWeek } from './services/dateUtils';
 import { checkCollision } from './services/collisionService';
 import { Rental } from './types';
-import { isFirebaseConfigured, rentalsCollection, db } from './services/firebase.ts';
+import { isFirebaseConfigured, rentalsCollection, db } from './services/firebase';
 import { 
   onSnapshot, 
   doc, 
   setDoc, 
   deleteDoc, 
-  query 
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  query,
+  QuerySnapshot,
+  DocumentData,
+  FirestoreError
+} from 'firebase/firestore';
 
 const INITIAL_DATA: Rental[] = [
   {
@@ -43,11 +47,11 @@ const App: React.FC = () => {
     if (isFirebaseConfigured && rentalsCollection) {
       // Real-time synchronization with Firebase
       const q = query(rentalsCollection);
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
         const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Rental));
         setRentals(data);
         setLoading(false);
-      }, (error) => {
+      }, (error: FirestoreError) => {
         console.error("Firestore error:", error);
         setLoading(false);
       });
@@ -160,11 +164,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans text-slate-900">
       <header className="bg-white border-b border-slate-200 shadow-sm z-20 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-brand-600 text-white p-2 rounded-lg">
+            <div className="bg-brand-600 text-white p-2 rounded-lg shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
@@ -205,16 +209,16 @@ const App: React.FC = () => {
           </div>
         ) : (
           <>
-            <section className="bg-white rounded-xl shadow-md p-1 border border-slate-200">
-              <div className="bg-slate-50 p-2 border-b border-slate-100 mb-1 rounded-t-lg">
+            <section className="bg-white rounded-xl shadow-md p-1 border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 mb-1 rounded-t-lg">
                 <p className="text-sm text-slate-500 flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Kliknij na mapę (Dodaj) lub na pin (Edytuj). Tryb wieloużytkownikowy aktywny.
+                  Kliknij na mapę (Dodaj) lub na pin (Edytuj). Zmiany widoczne dla wszystkich.
                 </p>
               </div>
-              <div className="aspect-[2/1] w-full bg-slate-100 rounded-lg overflow-hidden">
+              <div className="aspect-[2/1] w-full bg-slate-100 rounded-lg overflow-hidden relative">
                 <MapBoard 
                     rentals={filteredRentals} 
                     onMapClick={handleMapClick}
@@ -241,7 +245,7 @@ const App: React.FC = () => {
                   <tbody>
                     {filteredRentals.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic">
+                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
                           Brak rezerwacji w wybranym okresie.
                         </td>
                       </tr>
@@ -252,15 +256,25 @@ const App: React.FC = () => {
                           onClick={() => centerOnPin(rental.id)}
                           className={`border-b hover:bg-brand-50 cursor-pointer transition-colors ${highlightedId === rental.id ? 'bg-brand-50 ring-2 ring-inset ring-brand-200' : ''}`}
                         >
-                          <td className="px-6 py-4 font-medium text-slate-900">{rental.tenantName}</td>
+                          <td className="px-6 py-4 font-semibold text-slate-900">{rental.tenantName}</td>
                           <td className="px-6 py-4 font-mono text-xs">
                             {rental.dateFrom} <span className="text-slate-400 mx-1">→</span> {rental.dateTo}
                           </td>
                           <td className="px-6 py-4 max-w-xs truncate">{rental.description || '-'}</td>
-                          <td className="px-6 py-4 text-right flex justify-end gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); handleEditClick(rental); }} className="text-brand-600 hover:text-brand-800">Edytuj</button>
-                            <span className="text-slate-300">|</span>
-                            <button onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }} className="text-red-600 hover:text-red-800">Usuń</button>
+                          <td className="px-6 py-4 text-right flex justify-end gap-3">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEditClick(rental); }} 
+                              className="text-brand-600 hover:text-brand-800 font-medium"
+                            >
+                              Edytuj
+                            </button>
+                            <span className="text-slate-200">|</span>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(rental.id); }} 
+                              className="text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Usuń
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -282,9 +296,14 @@ const App: React.FC = () => {
         />
       </Modal>
 
-      <footer className="bg-white border-t border-slate-200 mt-auto py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
-          &copy; {new Date().getFullYear()} BORSTL System. Real-time data sync powered by Firebase.
+      <footer className="bg-white border-t border-slate-200 mt-auto py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-sm text-slate-500 font-medium">
+            &copy; {new Date().getFullYear()} BORSTL System. Real-time data sync powered by Firebase Cloud.
+          </p>
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
+            Zaprojektowano dla profesjonalnego zarządzania wynajmem.
+          </p>
         </div>
       </footer>
     </div>
